@@ -34,35 +34,40 @@ void setup()
   sensors.request(address);
 }
 
-void loop() {
+void loop()
+{
   analogWrite(haloPIN, 255);
 
   float temperature = sensors.readTemperature(address);
 
   PID_error = preffered_temp - temperature;
   PID_p = kp * PID_error;
+
   if(-3 < PID_error < 3)
   {
     PID_i = PID_i + (ki * PID_error);
   }
+
   timePrev = Time;
   Time = millis();
   elapsedTime = (Time - timePrev) / 1000;
   PID_d = kd*((PID_error - previous_error)/elapsedTime);
   PID_value = PID_p + PID_i + PID_d;
+
   if(PID_value < 0)
   {
     PID_value = 0;
   }
+
   if(PID_value > 255)
   {
     PID_value = 255;
   }
+
   previous_error = PID_error;
 
   analogWrite(fanPIN,  255 - PID_value);
   Serial.println(temperature);
   sensors.request(address);
   delay(200);
-
 }
