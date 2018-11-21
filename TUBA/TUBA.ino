@@ -2,7 +2,9 @@
 #include <DS18B20.h>
 #include <OneWire.h>
 
-double proportionalTerm = 2; double integralTerm = 5; double derivativeTerm = 1;
+double proportionalTerm = 2;
+double integralTerm = 5;
+double derivativeTerm = 1;
 
 #define sensorPIN 2
 #define fanPIN 9
@@ -14,6 +16,11 @@ double fanSpeed1 = 0;
 double fanSpeed2 = 0;
 double fanSpeed3 = 0;
 byte address[8] = {0x28, 0x6E, 0x7D, 0x24, 0x6, 0x0, 0x0, 0xE0};
+bool runningMeasurements = true;
+bool isSensorCooled = false;
+
+unsigned long currentTime;
+unsigned long startMeasurementTime;
 
 PID myP(&temperature, &fanSpeed1, &prefferedTemperature, proportionalTerm, 0, 0, REVERSE);
 PID myPI(&temperature, &fanSpeed2, &prefferedTemperature, proportionalTerm, integralTerm, 0, REVERSE);
@@ -24,12 +31,6 @@ DS18B20 sensors(&onewire);
 
 void setup()
 {
-  if(Serial.available() > 0)
-  {
-    integralTerm = Serial.read();
-    derivativeTerm = Serial.read();
-  }
-
   pinMode(fanPIN, OUTPUT);
   pinMode(haloPIN, OUTPUT);
 
@@ -46,36 +47,88 @@ void setup()
   sensors.request(address);
 }
 
+void coolSensor()
+{
+  unsigned long coolingStartTime = millis();
+  
+  while(!isSensorCooled and millis() - coolingStartTime < 30000)
+  {
+    analogWrite(haloPIN, 0);
+    analogWrite(fanPIN, 255);
+  }
+  isSensorCooled = true;
+}
+
+void measureTemperature()
+{
+  startMeasurementTime = millis();
+  currentTime = millis();
+  while(runningMeasurements and millis() - startMeasurementTime < 121000)
+    if(millis() - currentTime > 1000)
+    {
+      analogWrite(haloPIN, 255);
+      currentTime = millis();
+      temperature = sensors.readTemperature(address);
+      myP.Compute();
+      myPI.Compute();
+      myPID.Compute();
+      analogWrite(fanPIN, fanSpeed3);
+      sensors.request(address);
+    
+      Serial.print(temperature);
+      Serial.print(":");
+      Serial.print(fanSpeed1);
+      Serial.print(":");
+      Serial.print(fanSpeed2);
+      Serial.print(":");
+      Serial.println(fanSpeed3);
+    }
+  runningMeasurements = false;
+}
+
+void goIdle()
+{
+    analogWrite(haloPIN, 0);
+    analogWrite(fanPIN, 0);
+}
+
 void loop()
 {
    if(Serial.available() > 0)
    {
-     double rd = Serial.read(DEC);
+     double rd = Serial.read() - 48;
      integralTerm = rd;
      derivativeTerm = rd;
+
+     myP.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+     myPI.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+     myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
    }
+ 
+  //coolSensor();
+  
+  measureTemperature();
 
-  analogWrite(haloPIN, 255);
-  temperature = sensors.readTemperature(address);
-  myP.Compute();
-  myPI.Compute();
-  myPID.Compute();
-  analogWrite(fanPIN, fanSpeed3);
-  sensors.request(address);
+  goIdle();
+}
 
-  double tuningBand = constrain((((prefferedTemperature-temperature)*100)/(proportionalTerm)) - 255, 0, 255);
 
-//  Serial.print(temperature);
-//  Serial.print(":");
-//  Serial.print(tuningBand);
-//  Serial.print(":");
-  Serial.print(fanSpeed1);
-  Serial.print(":");
-//€
-  Serial.print(fanSpeed3);
-  Serial.print(":     ");
-  Serial.println(derivativeTerm);
-  delay(1000);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
 //  analogWrite(haloPIN, 255);
 //
 //  previousTime = currentTime;
@@ -112,4 +165,4 @@ void loop()
 //  Serial.println(temperature);
 //  sensors.request(address);
 //  delay(1000);
-}
+
