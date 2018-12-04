@@ -2,9 +2,9 @@
 #include <DS18B20.h>
 #include <OneWire.h>
 
-double proportionalTerm = 2;
-double integralTerm = 5;
-double derivativeTerm = 1;
+double proportionalTerm = 0;
+double integralTerm = 0;
+double derivativeTerm = 0;
 
 #define sensorPIN 2
 #define fanPIN 9
@@ -53,15 +53,6 @@ void coolSensor()
   
   while(!isSensorCooled and millis() - coolingStartTime < 30000)
   {
-    if(Serial.available() > 0)
-    {
-      int incoming = Serial.read();
-      if(incoming == '0')
-      {
-        goIdle();
-        isSensorCooled = true;
-      }
-    }
     analogWrite(haloPIN, 0);
     analogWrite(fanPIN, 255);
   }
@@ -103,12 +94,22 @@ void goIdle()
 
 void loop()
 {
-if(Serial.available() > 0)
+if(Serial.available() >= 4)
 {
-  int command = Serial.read();
-  proportionalTerm = Serial.read();
-  integralTerm = Serial.read();
-  derivativeTerm = Serial.read(); 
+  double incoming[4];
+  for(int i = 0; i < 4; i++)
+  {
+    incoming[i] = Serial.read();
+  }
+  int command = int(incoming[0]);
+  proportionalTerm = double(incoming[1]);
+  integralTerm = double(incoming[2]);
+  derivativeTerm = double(incoming[3]); 
+
+  Serial.println(command);
+  Serial.println(proportionalTerm);
+  Serial.println(integralTerm);
+  Serial.println(derivativeTerm);
   if(command == '0')
   {
     goIdle();

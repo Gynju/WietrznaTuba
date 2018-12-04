@@ -55,9 +55,19 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
     def start_measurement(self):
         if(self.pressed == False):
             arduinoData.write(b'1')
-            arduinoData.write(b'2')
-            arduinoData.write(b'5')
-            arduinoData.write(b'1')
+
+            arduinoData.write(str(self.p_box.value()).encode())
+            arduinoData.write(str(self.i_box.value()).encode())
+            arduinoData.write(str(self.d_box.value()).encode())
+
+            print(str(self.p_box.value()).encode())
+            print(str(self.i_box.value()).encode())
+            print(str(self.d_box.value()).encode())
+
+            print(arduinoData.readline().decode())
+            print(arduinoData.readline().decode())
+            print(arduinoData.readline().decode())
+            print(arduinoData.readline().decode())
         else:
             arduinoData.write(b'0')
         self.pressed = not self.pressed
