@@ -53,6 +53,15 @@ void coolSensor()
   
   while(!isSensorCooled and millis() - coolingStartTime < 30000)
   {
+    if(Serial.available() > 0)
+    {
+      int incoming = Serial.read();
+      if(incoming == '0')
+      {
+        goIdle();
+        isSensorCooled = true;
+      }
+    }
     analogWrite(haloPIN, 0);
     analogWrite(fanPIN, 255);
   }
@@ -94,22 +103,36 @@ void goIdle()
 
 void loop()
 {
-   if(Serial.available() > 0)
-   {
-     double rd = Serial.read() - 48;
-     integralTerm = rd;
-     derivativeTerm = rd;
+if(Serial.available() > 0)
+{
+  int command = Serial.read();
+  proportionalTerm = Serial.read();
+  integralTerm = Serial.read();
+  derivativeTerm = Serial.read(); 
+  if(command == '0')
+  {
+    goIdle();
+  }
+  if(command == '1')
+  {
+    coolSensor();
+    measureTemperature();
+    goIdle();
+  }
+    //  double rd = Serial.read() - 48;
+    //  integralTerm = rd;
+    //  derivativeTerm = rd;
 
-     myP.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
-     myPI.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
-     myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+    //  myP.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+    //  myPI.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+    //  myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
    }
  
-  //coolSensor();
+  // coolSensor();
   
-  measureTemperature();
+  // measureTemperature();
 
-  goIdle();
+  // goIdle();
 }
 
 
