@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy
 import serial
 import sys
+import time
 from matplotlib.widgets import Slider
 from PyQt5 import QtWidgets, uic
 
@@ -49,25 +50,15 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
         self.start_measurement_button.clicked.connect(self.start_measurement)
-        arduinoData.write(b'0')
         self.pressed = False
     
     def start_measurement(self):
         if(self.pressed == False):
-            arduinoData.write(b'1')
-
-            arduinoData.write(str(self.p_box.value()).encode())
-            arduinoData.write(str(self.i_box.value()).encode())
-            arduinoData.write(str(self.d_box.value()).encode())
-
-            print(str(self.p_box.value()).encode())
-            print(str(self.i_box.value()).encode())
-            print(str(self.d_box.value()).encode())
-
-            print(arduinoData.readline().decode())
-            print(arduinoData.readline().decode())
-            print(arduinoData.readline().decode())
-            print(arduinoData.readline().decode())
+            command = str(1)
+            p = str(self.p_box.value())
+            i = str(self.i_box.value())
+            d = str(self.d_box.value())
+            arduinoData.write((f'<{command},{p},{i},{d}>').encode())
         else:
             arduinoData.write(b'0')
         self.pressed = not self.pressed

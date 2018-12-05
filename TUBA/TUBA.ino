@@ -2,6 +2,17 @@
 #include <DS18B20.h>
 #include <OneWire.h>
 
+char inputBuffer[64];
+int command = 0;
+int bytesRecvd = 0;
+const char startMarker = '<';
+const char endMarker = '>';
+
+bool receivedData = false;
+bool readInProgress = false;
+bool isRunningMeasurements = true;
+bool isSensorCooled = false;
+
 double proportionalTerm = 0;
 double integralTerm = 0;
 double derivativeTerm = 0;
@@ -16,14 +27,11 @@ double fanSpeed1 = 0;
 double fanSpeed2 = 0;
 double fanSpeed3 = 0;
 byte address[8] = {0x28, 0x6E, 0x7D, 0x24, 0x6, 0x0, 0x0, 0xE0};
-bool runningMeasurements = true;
-bool isSensorCooled = false;
+
 
 unsigned long currentTime;
 unsigned long startMeasurementTime;
 
-PID myP(&temperature, &fanSpeed1, &prefferedTemperature, proportionalTerm, 0, 0, REVERSE);
-PID myPI(&temperature, &fanSpeed2, &prefferedTemperature, proportionalTerm, integralTerm, 0, REVERSE);
 PID myPID(&temperature, &fanSpeed3, &prefferedTemperature, proportionalTerm, integralTerm, derivativeTerm, REVERSE);
 
 OneWire onewire(sensorPIN);
@@ -39,12 +47,53 @@ void setup()
 
   Serial.begin(9600);
 
-  myP.SetMode(AUTOMATIC); 
-  myPI.SetMode(AUTOMATIC); 
   myPID.SetMode(AUTOMATIC); 
 
   sensors.begin();
   sensors.request(address);
+}
+
+void loop()
+{
+  readDataFromSerial();
+  if(receivedData)
+    {
+      myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+      receivedData = false;
+    }
+  if(command == 1 and !readInProgress)
+  {
+    coolSensor();
+    measureTemperature();
+    goIdle();
+  }
+  // if(Serial.available() > 0)
+  // {
+  //   char incoming data = Serial.read();
+  //   Serial.read();
+  //   Serial.println(Serial.read());
+    // int command = int(incoming[0]);
+    // proportionalTerm = double(incoming[1]);
+    // integralTerm = double(incoming[2]);
+    // derivativeTerm = double(incoming[3]); 
+
+    // if(command == '0')
+    // {
+    //   goIdle();
+    // }
+    // if(command == '1')
+    // {
+    //   coolSensor();
+    //   measureTemperature();
+    //   goIdle();
+    // }
+      //  double rd = Serial.read() - 48;
+      //  integralTerm = rd;
+      //  derivativeTerm = rd;
+
+      //  myP.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+      //  myPI.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+      //  myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
 }
 
 void coolSensor()
@@ -63,14 +112,12 @@ void measureTemperature()
 {
   startMeasurementTime = millis();
   currentTime = millis();
-  while(runningMeasurements and millis() - startMeasurementTime < 121000)
+  while(isRunningMeasurements and millis() - startMeasurementTime < 121000)
     if(millis() - currentTime > 1000)
     {
       analogWrite(haloPIN, 255);
       currentTime = millis();
       temperature = sensors.readTemperature(address);
-      myP.Compute();
-      myPI.Compute();
       myPID.Compute();
       analogWrite(fanPIN, fanSpeed3);
       sensors.request(address);
@@ -83,110 +130,60 @@ void measureTemperature()
       Serial.print(":");
       Serial.println(fanSpeed3);
     }
-  runningMeasurements = false;
+  isRunningMeasurements = false;
 }
 
 void goIdle()
 {
+    command = 0;
     analogWrite(haloPIN, 0);
     analogWrite(fanPIN, 0);
 }
 
-void loop()
+void readDataFromSerial()
 {
-if(Serial.available() >= 4)
-{
-  double incoming[4];
-  for(int i = 0; i < 4; i++)
+  if(Serial.available() > 0)
   {
-    incoming[i] = Serial.read();
-  }
-  int command = int(incoming[0]);
-  proportionalTerm = double(incoming[1]);
-  integralTerm = double(incoming[2]);
-  derivativeTerm = double(incoming[3]); 
+    char receivedByte = Serial.read();
 
-  Serial.println(command);
-  Serial.println(proportionalTerm);
-  Serial.println(integralTerm);
-  Serial.println(derivativeTerm);
-  if(command == '0')
-  {
-    goIdle();
-  }
-  if(command == '1')
-  {
-    coolSensor();
-    measureTemperature();
-    goIdle();
-  }
-    //  double rd = Serial.read() - 48;
-    //  integralTerm = rd;
-    //  derivativeTerm = rd;
+    if (receivedByte == endMarker)
+    {
+      readInProgress = false;
+      receivedData = true;
+      inputBuffer[bytesRecvd] = 0;
+      parseData();
+    }
+    
+    if(readInProgress)
+    {
+      inputBuffer[bytesRecvd] = receivedByte;
+      bytesRecvd ++;
+      if (bytesRecvd == 64) {
+        bytesRecvd = 64 - 1;
+      }
+    }
 
-    //  myP.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
-    //  myPI.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
-    //  myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
-   }
- 
-  // coolSensor();
-  
-  // measureTemperature();
-
-  // goIdle();
+    if (receivedByte == startMarker)
+    { 
+      bytesRecvd = 0; 
+      readInProgress = true;
+    }
+  }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void parseData()
+{   
+  char * strtokIndx;
   
-//  analogWrite(haloPIN, 255);
-//
-//  previousTime = currentTime;
-//  currentTime = millis();
-//  elapsedTime = (currentTime - previousTime) / 1000;
-//  totalTime += elapsedTime;
-//
-//  temperature = sensors.readTemperature(address);
-//
-//  currentError = prefferedTemperature - temperature;
-//  calculatedProportionalValue = proportionalTerm * currentError;
-//
-//  if(-5 < currentError < 5)
-//  {
-//    calculatedIntegralValue = calculatedIntegralValue + (integralTerm * currentError);
-//  }
-//
-//  calculatedDerivativeValue = derivativeTerm*((currentError - previousError)/elapsedTime);
-//  valuePID = calculatedProportionalValue + calculatedIntegralValue + calculatedDerivativeValue;
-//
-//  if(valuePID < 0)
-//  {
-//    valuePID = 0;
-//  }
-//
-//  if(valuePID > 255)
-//  {
-//    valuePID = 255;
-//  }
-//
-//  previousError = currentError;
-//  fanSpeed = 255 - valuePID;
-//  analogWrite(fanPIN,  fanSpeed);
-//  Serial.println(temperature);
-//  sensors.request(address);
-//  delay(1000);
+  strtokIndx = strtok(inputBuffer, ",");
+  command = atoi(strtokIndx);
+  
+  strtokIndx = strtok(NULL, ",");
+  proportionalTerm = atof(strtokIndx);
+  
+  strtokIndx = strtok(NULL, ","); 
+  integralTerm = atof(strtokIndx);
 
+  strtokIndx = strtok(NULL, ","); 
+  derivativeTerm = atof(strtokIndx);
+}
