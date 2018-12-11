@@ -4,7 +4,7 @@
 
 char inputBuffer[64];
 int command = 0;
-int bytesRecvd = 0;
+int bytesRecived = 0;
 const char startMarker = '<';
 const char endMarker = '>';
 
@@ -23,16 +23,13 @@ double derivativeTerm = 0;
 
 double prefferedTemperature = 40;
 double temperature;
-double fanSpeed1 = 0;
-double fanSpeed2 = 0;
-double fanSpeed3 = 0;
+double fanSpeed = 0;
 byte address[8] = {0x28, 0x6E, 0x7D, 0x24, 0x6, 0x0, 0x0, 0xE0};
-
 
 unsigned long currentTime;
 unsigned long startMeasurementTime;
 
-PID myPID(&temperature, &fanSpeed3, &prefferedTemperature, proportionalTerm, integralTerm, derivativeTerm, REVERSE);
+PID myPID(&temperature, &fanSpeed, &prefferedTemperature, proportionalTerm, integralTerm, derivativeTerm, REVERSE);
 
 OneWire onewire(sensorPIN);
 DS18B20 sensors(&onewire);
@@ -56,44 +53,29 @@ void setup()
 void loop()
 {
   readDataFromSerial();
+
   if(receivedData)
-    {
-      myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
-      receivedData = false;
-    }
-  if(command == 1 and !readInProgress)
   {
-    coolSensor();
-    measureTemperature();
-    goIdle();
+    myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+    receivedData = false;
   }
-  // if(Serial.available() > 0)
-  // {
-  //   char incoming data = Serial.read();
-  //   Serial.read();
-  //   Serial.println(Serial.read());
-    // int command = int(incoming[0]);
-    // proportionalTerm = double(incoming[1]);
-    // integralTerm = double(incoming[2]);
-    // derivativeTerm = double(incoming[3]); 
 
-    // if(command == '0')
-    // {
-    //   goIdle();
-    // }
-    // if(command == '1')
-    // {
-    //   coolSensor();
-    //   measureTemperature();
-    //   goIdle();
-    // }
-      //  double rd = Serial.read() - 48;
-      //  integralTerm = rd;
-      //  derivativeTerm = rd;
+  switch(command)
+  {
+    case 0:
+      goIdle();
+      break;
 
-      //  myP.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
-      //  myPI.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
-      //  myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+    case 1:
+      isSensorCooled = false;
+      coolSensor();
+      break;
+
+    case 2:
+      isRunningMeasurements = true;
+      measureTemperature();
+      break;
+  }
 }
 
 void coolSensor()
@@ -102,10 +84,18 @@ void coolSensor()
   
   while(!isSensorCooled and millis() - coolingStartTime < 30000)
   {
+    readDataFromSerial();
+    if(command == 0)
+    {
+      receivedData = false;
+      break;
+    }
     analogWrite(haloPIN, 0);
     analogWrite(fanPIN, 255);
   }
   isSensorCooled = true;
+  if(command != 0)
+    command = 2;
 }
 
 void measureTemperature()
@@ -113,29 +103,33 @@ void measureTemperature()
   startMeasurementTime = millis();
   currentTime = millis();
   while(isRunningMeasurements and millis() - startMeasurementTime < 121000)
+  {
+    readDataFromSerial();
+    if(command == 0)
+    {
+      receivedData = false;
+      break;
+    }
     if(millis() - currentTime > 1000)
     {
       analogWrite(haloPIN, 255);
       currentTime = millis();
       temperature = sensors.readTemperature(address);
       myPID.Compute();
-      analogWrite(fanPIN, fanSpeed3);
+      analogWrite(fanPIN, fanSpeed);
       sensors.request(address);
     
       Serial.print(temperature);
       Serial.print(":");
-      Serial.print(fanSpeed1);
-      Serial.print(":");
-      Serial.print(fanSpeed2);
-      Serial.print(":");
-      Serial.println(fanSpeed3);
+      Serial.println(fanSpeed);
     }
+  }
   isRunningMeasurements = false;
+  command = 0;
 }
 
 void goIdle()
 {
-    command = 0;
     analogWrite(haloPIN, 0);
     analogWrite(fanPIN, 0);
 }
@@ -150,22 +144,22 @@ void readDataFromSerial()
     {
       readInProgress = false;
       receivedData = true;
-      inputBuffer[bytesRecvd] = 0;
+      inputBuffer[bytesRecived] = 0;
       parseData();
     }
     
     if(readInProgress)
     {
-      inputBuffer[bytesRecvd] = receivedByte;
-      bytesRecvd ++;
-      if (bytesRecvd == 64) {
-        bytesRecvd = 64 - 1;
+      inputBuffer[bytesRecived] = receivedByte;
+      bytesRecived ++;
+      if (bytesRecived == 64) {
+        bytesRecived = 64 - 1;
       }
     }
 
     if (receivedByte == startMarker)
     { 
-      bytesRecvd = 0; 
+      bytesRecived = 0; 
       readInProgress = true;
     }
   }
