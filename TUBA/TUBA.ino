@@ -100,9 +100,8 @@ void coolSensor()
 
 void measureTemperature()
 {
-  startMeasurementTime = millis();
   currentTime = millis();
-  while(isRunningMeasurements and millis() - startMeasurementTime < 121000)
+  while(true)
   {
     readDataFromSerial();
     if(command == 0)
@@ -110,7 +109,7 @@ void measureTemperature()
       receivedData = false;
       break;
     }
-    if(millis() - currentTime > 1000)
+    if(millis() - currentTime > 100)
     {
       analogWrite(haloPIN, 255);
       currentTime = millis();
