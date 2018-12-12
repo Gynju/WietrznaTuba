@@ -26,15 +26,10 @@ class DataThread(QThread):
         previous_millis = int(round(time.time() * 1000))
         while True:
             current_millis = int(round(time.time() * 1000))
-            
-            global arduinoData
-            arduinoString = arduinoData.readline()
-            data = arduinoString.decode('utf8').split(":")
-            tempList.append(float(data[0]))
-            tempList.append(float(data[0]))
-            previous_millis = current_millis
-            
             if current_millis - previous_millis > 1000:
+                data = arduinoString.decode('utf8').split(":")
+                tempList.append(float(data[0]))
+                previous_millis = current_millis
                 self.signal.emit('PLOT THIS MADAFAKA')
 
 
