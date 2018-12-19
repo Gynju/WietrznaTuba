@@ -10,8 +10,6 @@ const char endMarker = '>';
 
 bool receivedData = false;
 bool readInProgress = false;
-bool isRunningMeasurements = true;
-bool isSensorCooled = false;
 
 double proportionalTerm = 0;
 double integralTerm = 0;
@@ -21,7 +19,7 @@ double derivativeTerm = 0;
 #define fanPIN 9
 #define haloPIN 3
 
-double prefferedTemperature = 40;
+double prefferedTemperature = 45;
 double temperature;
 double fanSpeed = 0;
 byte address[8] = {0x28, 0x6E, 0x7D, 0x24, 0x6, 0x0, 0x0, 0xE0};
@@ -63,16 +61,15 @@ void loop()
   switch(command)
   {
     case 0:
+      sendTemperature();
       goIdle();
       break;
 
     case 1:
-      isSensorCooled = false;
       coolSensor();
       break;
 
     case 2:
-      isRunningMeasurements = true;
       measureTemperature();
       break;
   }
@@ -82,7 +79,8 @@ void coolSensor()
 {
   unsigned long coolingStartTime = millis();
   
-  while(!isSensorCooled and millis() - coolingStartTime < 30000)
+  fanSpeed = 255;
+  while(true)
   {
     readDataFromSerial();
     if(command == 0)
@@ -91,11 +89,11 @@ void coolSensor()
       break;
     }
     analogWrite(haloPIN, 0);
-    analogWrite(fanPIN, 255);
+    analogWrite(fanPIN, fanSpeed);
+    sendTemperature();
   }
-  isSensorCooled = true;
-  if(command != 0)
-    command = 2;
+  command = 0;
+  fanSpeed = 0;
 }
 
 void measureTemperature()
@@ -114,23 +112,31 @@ void measureTemperature()
       analogWrite(haloPIN, 255);
       currentTime = millis();
       temperature = sensors.readTemperature(address);
-      myPID.Compute();
-      analogWrite(fanPIN, fanSpeed);
       sensors.request(address);
-    
-      Serial.print(temperature);
-      Serial.print(":");
-      Serial.println(fanSpeed);
+      myPID.Compute();
+      if(fanSpeed < 50)
+        fanSpeed = 0;
+      analogWrite(fanPIN, fanSpeed);
+      sendTemperature();
     }
   }
-  isRunningMeasurements = false;
   command = 0;
 }
 
 void goIdle()
 {
-    analogWrite(haloPIN, 0);
-    analogWrite(fanPIN, 0);
+  fanSpeed = 0;
+  analogWrite(haloPIN, 0);
+  analogWrite(fanPIN, fanSpeed);
+}
+
+void sendTemperature()
+{
+  float temp = sensors.readTemperature(address);
+  Serial.print(temp);
+  Serial.print(":");
+  Serial.println(fanSpeed);
+  sensors.request(address);
 }
 
 void readDataFromSerial()

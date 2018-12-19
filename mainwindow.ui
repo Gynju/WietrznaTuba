@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1124</width>
-    <height>505</height>
+    <height>565</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,6 +24,13 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QProgressBar" name="progressBar">
+        <property name="value">
+         <number>24</number>
         </property>
        </widget>
       </item>
@@ -172,11 +179,22 @@
      </layout>
     </item>
     <item>
-     <widget class="QPushButton" name="measurement_button">
-      <property name="text">
-       <string>Start measurement</string>
-      </property>
-     </widget>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QPushButton" name="measurement_button">
+        <property name="text">
+         <string>Start measurement</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="cool_button">
+        <property name="text">
+         <string>Cool tube</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
