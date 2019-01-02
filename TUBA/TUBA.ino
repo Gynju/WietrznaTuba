@@ -72,6 +72,10 @@ void loop()
     case 2:
       measureTemperature();
       break;
+      
+    case 3:
+      simpleMeasureTemperature();
+      break;
   }
 }
 
@@ -115,6 +119,34 @@ void measureTemperature()
       sensors.request(address);
       myPID.Compute();
       if(fanSpeed < 50)
+        fanSpeed = 0;
+      analogWrite(fanPIN, fanSpeed);
+      sendTemperature();
+    }
+  }
+  command = 0;
+}
+
+void simpleMeasureTemperature()
+{
+  currentTime = millis();
+  while(true)
+  {
+    readDataFromSerial();
+    if(command == 0)
+    {
+      receivedData = false;
+      break;
+    }
+    if(millis() - currentTime > 100)
+    {
+      analogWrite(haloPIN, 255);
+      currentTime = millis();
+      temperature = sensors.readTemperature(address);
+      sensors.request(address);
+      if(temperature > prefferedTemperature)
+        fanSpeed = 255;
+      else
         fanSpeed = 0;
       analogWrite(fanPIN, fanSpeed);
       sendTemperature();
@@ -185,4 +217,7 @@ void parseData()
 
   strtokIndx = strtok(NULL, ","); 
   derivativeTerm = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ","); 
+  prefferedTemperature = atof(strtokIndx);
 }
