@@ -19,6 +19,10 @@ double derivativeTerm = 0;
 #define fanPIN 9
 #define haloPIN 3
 
+int controlCommand = 0;
+int staticPIN = haloPIN;
+int controlPIN = fanPIN;
+
 double prefferedTemperature = 45;
 double temperature;
 double fanSpeed = 0;
@@ -55,6 +59,7 @@ void loop()
   if(receivedData)
   {
     myPID.SetTunings(proportionalTerm, integralTerm, derivativeTerm);
+    checkControlledElement();
     receivedData = false;
   }
 
@@ -62,7 +67,7 @@ void loop()
   {
     case 0:
       sendTemperature();
-      goIdle();
+      standBy();
       break;
 
     case 1:
@@ -77,6 +82,20 @@ void loop()
       simpleMeasureTemperature();
       break;
   }
+}
+
+void checkControlledElement()
+{
+  if(!controlCommand)
+    {
+      controlPIN = fanPIN;
+      staticPIN = haloPIN;
+    }
+  else
+    {
+      controlPIN = haloPIN;
+      staticPIN = fanPIN;
+    }
 }
 
 void coolSensor()
@@ -113,14 +132,14 @@ void measureTemperature()
     }
     if(millis() - currentTime > 100)
     {
-      analogWrite(haloPIN, 255);
+      analogWrite(staticPIN, 255);
       currentTime = millis();
       temperature = sensors.readTemperature(address);
       sensors.request(address);
       myPID.Compute();
       if(fanSpeed < 50)
         fanSpeed = 0;
-      analogWrite(fanPIN, fanSpeed);
+      analogWrite(controlPIN, fanSpeed);
       sendTemperature();
     }
   }
@@ -140,7 +159,7 @@ void simpleMeasureTemperature()
     }
     if(millis() - currentTime > 100)
     {
-      analogWrite(haloPIN, 255);
+      analogWrite(staticPIN, 255);
       currentTime = millis();
       temperature = sensors.readTemperature(address);
       sensors.request(address);
@@ -148,18 +167,17 @@ void simpleMeasureTemperature()
         fanSpeed = 255;
       else
         fanSpeed = 0;
-      analogWrite(fanPIN, fanSpeed);
+      analogWrite(controlPIN, fanSpeed);
       sendTemperature();
     }
   }
   command = 0;
 }
 
-void goIdle()
+void standBy()
 {
-  fanSpeed = 0;
   analogWrite(haloPIN, 0);
-  analogWrite(fanPIN, fanSpeed);
+  analogWrite(fanPIN, 0);
 }
 
 void sendTemperature()
@@ -220,4 +238,7 @@ void parseData()
 
   strtokIndx = strtok(NULL, ","); 
   prefferedTemperature = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ","); 
+  controlCommand = atof(strtokIndx);
 }
