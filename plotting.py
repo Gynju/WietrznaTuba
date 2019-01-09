@@ -63,7 +63,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
             self.measurement_button.setEnabled(False)
             self.simple_button.setEnabled(False)
             command = str(1)
-            arduinoData.write((f'<{command},{0},{0},{0},{45},{self.controlCommand}>').encode())
+            arduinoData.write((f'<{command},{0},{0},{0},{0},{0}>').encode())
             self.cooling_sensor = True
         else:
             self.cool_button.setText('Cool sensor')
