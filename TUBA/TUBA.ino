@@ -139,6 +139,8 @@ void measureTemperature()
       myPID.Compute();
       if(fanSpeed < 50)
         fanSpeed = 0;
+      if(controlCommand == 1)
+        fanSpeed = map(fanSpeed, 0, 255, 255, 0);
       analogWrite(controlPIN, fanSpeed);
       sendTemperature();
     }
@@ -167,6 +169,8 @@ void simpleMeasureTemperature()
         fanSpeed = 255;
       else
         fanSpeed = 0;
+       if(controlCommand == 1)
+        fanSpeed = map(fanSpeed, 0, 255, 255, 0);
       analogWrite(controlPIN, fanSpeed);
       sendTemperature();
     }
