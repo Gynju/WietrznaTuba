@@ -20,6 +20,7 @@ double derivativeTerm = 0;
 #define haloPIN 3
 
 int controlCommand = 0;
+int PWMRegulation = 50;
 int staticPIN = haloPIN;
 int controlPIN = fanPIN;
 
@@ -137,7 +138,7 @@ void measureTemperature()
       temperature = sensors.readTemperature(address);
       sensors.request(address);
       myPID.Compute();
-      if(fanSpeed < 50)
+      if(fanSpeed <= PWMRegulation)
         fanSpeed = 0;
       if(controlCommand == 1)
         fanSpeed = map(fanSpeed, 0, 255, 255, 0);
@@ -151,6 +152,7 @@ void measureTemperature()
 void simpleMeasureTemperature()
 {
   currentTime = millis();
+  bool passedEdgeValue = false;
   while(true)
   {
     readDataFromSerial();
@@ -165,12 +167,21 @@ void simpleMeasureTemperature()
       currentTime = millis();
       temperature = sensors.readTemperature(address);
       sensors.request(address);
-      if(temperature > prefferedTemperature)
-        fanSpeed = 255;
-      else
+      if(temperature <= prefferedTemperature - 2)
+      {
         fanSpeed = 0;
-       if(controlCommand == 1)
+        passedEdgeValue = true;
+      }
+      else if(temperature >= prefferedTemperature + 2)
+      {
+        fanSpeed = 255;
+        passedEdgeValue = true;
+      }
+      if(controlCommand == 1 && passedEdgeValue)
+      {
         fanSpeed = map(fanSpeed, 0, 255, 255, 0);
+        passedEdgeValue = false;
+      }
       analogWrite(controlPIN, fanSpeed);
       sendTemperature();
     }
@@ -189,7 +200,9 @@ void sendTemperature()
   float temp = sensors.readTemperature(address);
   Serial.print(temp);
   Serial.print(":");
-  Serial.println(fanSpeed);
+  Serial.print(fanSpeed);
+  Serial.print(":");
+  Serial.println(controlCommand);
   sensors.request(address);
 }
 
@@ -245,4 +258,7 @@ void parseData()
 
   strtokIndx = strtok(NULL, ","); 
   controlCommand = atof(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  PWMRegulation = atoi(strtokIndx);
 }

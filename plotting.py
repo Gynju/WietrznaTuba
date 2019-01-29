@@ -18,6 +18,14 @@ plt.ion()
 tempList = []
 cnt = 0
 
+def translate(value, leftMin, leftMax, rightMin, rightMax):
+    leftSpan = leftMax - leftMin
+    rightSpan = rightMax - rightMin
+
+    valueScaled = float(value - leftMin) / float(leftSpan)
+
+    return rightMin + (valueScaled * rightSpan)
+
 class DataThread(QThread):
     plotting_signal = pyqtSignal('QString')
     temperature_signal = pyqtSignal('QString')
@@ -63,7 +71,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
             self.measurement_button.setEnabled(False)
             self.simple_button.setEnabled(False)
             command = str(1)
-            arduinoData.write((f'<{command},{0},{0},{0},{0},{0}>').encode())
+            arduinoData.write((f'<{command},{0},{0},{0},{0},{0},{0}>').encode())
             self.cooling_sensor = True
         else:
             self.cool_button.setText('Cool sensor')
@@ -71,7 +79,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
             self.measurement_button.setEnabled(True)
             self.simple_button.setEnabled(True)
             command = str(0)
-            arduinoData.write((f'<{command},{0},{0},{0},{45},{self.controlCommand}>').encode()) 
+            arduinoData.write((f'<{command},{0},{0},{0},{45},{self.controlCommand}>,{0}').encode()) 
 
 
     def start_measurement(self):
@@ -85,15 +93,16 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
             p = str(self.p_box.value())
             i = str(self.i_box.value())
             d = str(self.d_box.value())
+            PWM_cut = str(self.regulator.value())
             target_temperature = str(self.temperature_box.value())
-            arduinoData.write((f'<{command},{p},{i},{d},{target_temperature},{self.controlCommand}>').encode())
+            arduinoData.write((f'<{command},{p},{i},{d},{target_temperature},{self.controlCommand}>,{PWM_cut}').encode())
         else:
             self.measurement_button.setText('Start measurement')
             self.measurement_running = False
             self.simple_button.setEnabled(True)
             self.cool_button.setEnabled(True)
             command = str(0)
-            arduinoData.write((f'<{command},{0},{0},{0},{45},{self.controlCommand}>').encode())   
+            arduinoData.write((f'<{command},{0},{0},{0},{45},{self.controlCommand}>,{50}').encode())   
 
     def start_simple_measurement(self):
         if(self.measurement_running == False):
@@ -103,14 +112,14 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
             self.cool_button.setEnabled(False)
             command = str(3)
             target_temperature = str(self.temperature_box.value())
-            arduinoData.write((f'<{command},{0},{0},{0},{target_temperature},{self.controlCommand}>').encode())
+            arduinoData.write((f'<{command},{0},{0},{0},{target_temperature},{self.controlCommand}>,{0}').encode())
         else:
             self.simple_button.setText('Start measurement in  OFF/On mode')
             self.measurement_running = False
             self.measurement_button.setEnabled(True)
             self.cool_button.setEnabled(True)
             command = str(0)
-            arduinoData.write((f'<{command},{0},{0},{0},{45},{self.controlCommand}>').encode())   
+            arduinoData.write((f'<{command},{0},{0},{0},{45},{self.controlCommand}>,{0}').encode())   
     
     def setFanControl(self):
         self.controlCommand = 0
@@ -130,8 +139,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
             
     @pyqtSlot('QString')
     def update_status_bar(self, value):
-        self.progressBar.setValue((float(data[1])/255) * 100)
-        self.statusBar.showMessage(f'Current temperature: {data[0]}, Current Fan PWM: {data[1]}')
+        self.progressBar.setValue(translate(self.regulator.value(), 0, 255, 0, 100))
+        self.statusBar.showMessage(f'Current temperature: {data[0]}, Current Fan PWM: {data[1]}, Current Control Command: {data[2]}')
         
 
 if __name__=='__main__':
