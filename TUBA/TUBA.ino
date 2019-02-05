@@ -24,6 +24,7 @@ int PWMRegulation = 50;
 int staticPIN = haloPIN;
 int controlPIN = fanPIN;
 
+double delta_h = 0;
 double prefferedTemperature = 45;
 double temperature;
 double fanSpeed = 0;
@@ -167,12 +168,12 @@ void simpleMeasureTemperature()
       currentTime = millis();
       temperature = sensors.readTemperature(address);
       sensors.request(address);
-      if(temperature <= prefferedTemperature - 2)
+      if(temperature <= prefferedTemperature - delta_h/2)
       {
         fanSpeed = 0;
         passedEdgeValue = true;
       }
-      else if(temperature >= prefferedTemperature + 2)
+      else if(temperature >= prefferedTemperature + delta_h/2)
       {
         fanSpeed = 255;
         passedEdgeValue = true;
@@ -261,4 +262,7 @@ void parseData()
 
   strtokIndx = strtok(NULL, ",");
   PWMRegulation = atoi(strtokIndx);
+
+  strtokIndx = strtok(NULL, ",");
+  delta_h = atof(strtokIndx);
 }
