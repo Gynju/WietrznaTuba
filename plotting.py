@@ -49,6 +49,8 @@ class DataThread(QThread):
 
 class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
         QtWidgets.QMainWindow.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
@@ -65,6 +67,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         self.data_thread.plotting_signal.connect(self.plot_temperature)
         self.data_thread.temperature_signal.connect(self.update_status_bar)
         self.data_thread.start()
+
 
     def cool_sensor(self):
         if(self.measurement_running == False and self.cooling_sensor == False):
@@ -136,16 +139,14 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @pyqtSlot('QString')
     def plot_temperature(self, value):
-        if(self.measurement_running == True):
-            target_temperature_line = []
-            time = numpy.arange(len(tempList))
-            time = [x/10 for x in time]
-            tt = self.temperature_box.value()
-            target_temperature_line = target_temperature_line + \
-                [tt]*(int(time[-1]))
-            self.plotWidget.clear()
-            self.plotWidget.plot(time, tempList, pen='r')
-            self.plotWidget.plot(target_temperature_line, pen='y')
+        time = numpy.arange(len(tempList))
+        time = [x/10 for x in time]
+        self.plotWidget.clear()
+        try:
+            self.plotWidget.plot(time, tempList, pen=pg.mkPen('r', width=3))
+            self.plotWidget.plot([self.temperature_box.value()]*int(time[-1]+1), pen=pg.mkPen('b', width=3))
+        except:
+            pass
 
     @pyqtSlot('QString')
     def update_status_bar(self, value):
