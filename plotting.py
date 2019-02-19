@@ -138,11 +138,13 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
     def plot_temperature(self, value):
         if(self.measurement_running == True):
             target_temperature_line = []
+            time = numpy.arange(len(tempList))
+            time = [x/10 for x in time]
             tt = self.temperature_box.value()
             target_temperature_line = target_temperature_line + \
-                [tt]*(len(tempList)+10)
+                [tt]*(int(time[-1]))
             self.plotWidget.clear()
-            self.plotWidget.plot(tempList, pen='r')
+            self.plotWidget.plot(time, tempList, pen='r')
             self.plotWidget.plot(target_temperature_line, pen='y')
 
     @pyqtSlot('QString')
