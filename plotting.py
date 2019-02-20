@@ -39,10 +39,9 @@ class DataThread(QThread):
                 data = arduinoData.readline().decode('utf-8').split(":")
                 tempList.append(float(data[0]))
                 current_millis = int(round(time.time() * 1000))
-                if current_millis - previous_millis > 500:
-                    previous_millis = current_millis
-                    self.plotting_signal.emit('PLOT')
-                    self.temperature_signal.emit(data[0])
+                previous_millis = current_millis
+                self.plotting_signal.emit('PLOT')
+                self.temperature_signal.emit(data[0])
             except:
                 pass
 
@@ -139,12 +138,12 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
 
     @pyqtSlot('QString')
     def plot_temperature(self, value):
+        self.plotWidget.clear()
         time = numpy.arange(len(tempList))
         time = [x/10 for x in time]
-        self.plotWidget.clear()
         try:
             self.plotWidget.plot(time, tempList, pen=pg.mkPen('r', width=3))
-            self.plotWidget.plot([self.temperature_box.value()]*int(time[-1]+1), pen=pg.mkPen('b', width=3))
+            self.plotWidget.plot([self.temperature_box.value()]*int(time[-1]+2), pen=pg.mkPen('b', width=3))
         except:
             pass
 

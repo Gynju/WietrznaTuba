@@ -68,7 +68,6 @@ void loop()
   switch(command)
   {
     case 0:
-      sendTemperature();
       standBy();
       break;
 
@@ -102,8 +101,8 @@ void checkControlledElement()
 
 void coolSensor()
 {
-  unsigned long coolingStartTime = millis();
-  
+  currentTime = millis();
+
   fanSpeed = 255;
   while(true)
   {
@@ -115,7 +114,11 @@ void coolSensor()
     }
     analogWrite(haloPIN, 0);
     analogWrite(fanPIN, fanSpeed);
-    sendTemperature();
+    if(millis() - currentTime > 100)
+    {
+      currentTime = millis();
+      sendTemperature();
+    }
   }
   command = 0;
   fanSpeed = 0;
@@ -194,6 +197,20 @@ void standBy()
 {
   analogWrite(haloPIN, 0);
   analogWrite(fanPIN, 0);
+  currentTime = millis();
+  while(true)
+  {
+    readDataFromSerial();
+    if(command != 0)
+    {
+      break;
+    }
+    if(millis() - currentTime > 100)
+    {
+      currentTime = millis();
+      sendTemperature();
+    }
+  }
 }
 
 void sendTemperature()

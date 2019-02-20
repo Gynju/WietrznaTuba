@@ -61,7 +61,10 @@
              <number>255</number>
             </property>
             <property name="value">
-             <number>50</number>
+             <number>30</number>
+            </property>
+            <property name="sliderPosition">
+             <number>30</number>
             </property>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -174,7 +177,14 @@
          </spacer>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="p_box"/>
+         <widget class="QDoubleSpinBox" name="p_box">
+          <property name="decimals">
+           <number>3</number>
+          </property>
+          <property name="maximum">
+           <double>1000.000000000000000</double>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -219,7 +229,14 @@
          </spacer>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="i_box"/>
+         <widget class="QDoubleSpinBox" name="i_box">
+          <property name="decimals">
+           <number>3</number>
+          </property>
+          <property name="maximum">
+           <double>1000.000000000000000</double>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -264,7 +281,14 @@
          </spacer>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="d_box"/>
+         <widget class="QDoubleSpinBox" name="d_box">
+          <property name="decimals">
+           <number>3</number>
+          </property>
+          <property name="maximum">
+           <double>1000.000000000000000</double>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -309,7 +333,11 @@
          </spacer>
         </item>
         <item>
-         <widget class="QSpinBox" name="temperature_box"/>
+         <widget class="QSpinBox" name="temperature_box">
+          <property name="maximum">
+           <number>999</number>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
