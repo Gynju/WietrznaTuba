@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy
 import serial
 import sys
@@ -15,6 +14,7 @@ Ui_MainWindow, QtBaseClass = uic.loadUiType(uiFile)
 arduinoData = serial.Serial('COM3', 9600)
 data = []
 tempList = []
+plotting = False
 
 
 def map_value(value, leftMin, leftMax, rightMin, rightMax):
@@ -33,6 +33,7 @@ class DataThread(QThread):
     def run(self):
         global arduinoData
         global data
+        global plotting
         previous_millis = int(round(time.time() * 1000))
         while True:
             try:
@@ -40,8 +41,9 @@ class DataThread(QThread):
                 tempList.append(float(data[0]))
                 current_millis = int(round(time.time() * 1000))
                 previous_millis = current_millis
-                self.plotting_signal.emit('PLOT')
                 self.temperature_signal.emit(data[0])
+                if plotting:
+                    self.plotting_signal.emit('PLOT')
             except:
                 pass
 
@@ -69,7 +71,10 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
     def cool_sensor(self):
+        global plotting
         if(self.measurement_running == False and self.cooling_sensor == False):
+            plotting = True
+            self.plotWidget.enableAutoRange()
             self.cool_button.setText('Stop cooling')
             self.measurement_button.setEnabled(False)
             self.simple_button.setEnabled(False)
@@ -78,6 +83,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
                 (f'<{command},{0},{0},{0},{0},{0},{0},{0}>').encode())
             self.cooling_sensor = True
         else:
+            plotting = False
             self.cool_button.setText('Cool sensor')
             self.cooling_sensor = False
             self.measurement_button.setEnabled(True)
@@ -88,7 +94,11 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def start_measurement(self):
         global tempList
+        global plotting
         if(self.measurement_running == False):
+            plotting = True
+            self.plotWidget.enableAutoRange()
+            tempList = []
             self.measurement_button.setText('Stop measurement')
             self.measurement_running = True
             self.simple_button.setEnabled(False)
@@ -102,6 +112,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
             arduinoData.write(
                 (f'<{command},{p},{i},{d},{target_temperature},{self.controlCommand},{PWM_cut},{0}>').encode())
         else:
+            plotting = False
             self.measurement_button.setText('Start measurement')
             self.measurement_running = False
             self.simple_button.setEnabled(True)
@@ -111,7 +122,11 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
                 (f'<{command},{0},{0},{0},{45},{self.controlCommand},{50},{0}>').encode())
 
     def start_simple_measurement(self):
+        global plotting
         if(self.measurement_running == False):
+            plotting = True
+            self.plotWidget.enableAutoRange()
+            tempList = []
             self.simple_button.setText('Stop measurement')
             self.measurement_running = True
             self.measurement_button.setEnabled(False)
@@ -122,6 +137,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
             arduinoData.write(
                 (f'<{command},{0},{0},{0},{target_temperature},{self.controlCommand},{0},{delta_h}>').encode())
         else:
+            plotting = False
             self.simple_button.setText('Start measurement in  OFF/On mode')
             self.measurement_running = False
             self.measurement_button.setEnabled(True)
@@ -152,7 +168,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         self.progressBar.setValue(
             map_value(self.regulator.value(), 0, 255, 0, 100))
         self.statusBar.showMessage(
-            f'Current temperature: {data[0]}, Current Fan PWM: {data[1]}, Current Control Command: {data[2]}')
+            f'Current temperature: {data[0]}, Current Fan PWM: {data[1]}')
 
 
 if __name__ == '__main__':
