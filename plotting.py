@@ -11,7 +11,7 @@ uiFile = 'mainwindow.ui'
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(uiFile)
 
-arduinoData = serial.Serial('COM3', 9600)
+arduinoData = []#serial.Serial('COM3', 9600)
 data = []
 tempList = []
 plotting = False
